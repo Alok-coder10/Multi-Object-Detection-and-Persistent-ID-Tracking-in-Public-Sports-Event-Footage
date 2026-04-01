@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Technical Report — TrackField</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html" class="nav-logo">TRACKFIELD</a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="demo.html" class="nav-link">Live Demo</a>
+    <a href="pipeline.html" class="nav-link">Pipeline</a>
+    <a href="report.html" class="nav-link active">Report</a>
+  </div>
+  <a href="demo.html" class="nav-cta">Try Demo →</a>
+</nav>
+
+<div class="container report-container">
+  <div class="page-header">
+    <div class="section-label">Assignment Submission</div>
+    <h1>Technical Report</h1>
+    <p class="page-desc">Multi-Object Detection and Persistent ID Tracking in Public Sports/Event Footage</p>
+    <div class="report-meta">
+      <span>April 2026</span>
+      <span class="meta-divider">·</span>
+      <span>YOLOv8m + ByteTrack</span>
+      <span class="meta-divider">·</span>
+      <a href="#" style="color:var(--accent)">Video source ↗</a>
+    </div>
+  </div>
+
+  <div class="report-body">
+
+    <section class="report-section">
+      <h2>1. Model / Detector Used</h2>
+      <p><strong>YOLOv8m</strong> (You Only Look Once, version 8 — medium variant) from the <code>ultralytics</code> library.</p>
+      <p>YOLOv8 is a single-stage anchor-free detector that predicts bounding boxes and class probabilities in a single forward pass. The medium variant was selected as the default because it achieves <strong>50.2 mAP</strong> on COCO val2017, meaningfully outperforming the nano (37.3) and small (44.9) variants, while running at approximately 18–25 fps on a modern CPU.</p>
+      <p>Detection was restricted to <strong>COCO class 0 (person)</strong> via the <code>classes=[0]</code> parameter. The detection confidence threshold was set to 0.35 — conservative enough to reduce missed detections while filtering obvious noise.</p>
+    </section>
+
+    <section class="report-section">
+      <h2>2. Tracking Algorithm</h2>
+      <p><strong>ByteTrack-style custom tracker</strong> built on three components:</p>
+      <ul class="report-list">
+        <li><strong>Kalman filter</strong> — constant-velocity motion model with 7-dimensional state vector: <code>[cx, cy, area, aspect_ratio, vx, vy, v_area]</code></li>
+        <li><strong>Hungarian algorithm</strong> — optimal bipartite assignment via the Munkres method (scipy <code>linear_sum_assignment</code>)</li>
+        <li><strong>Two-stage association</strong> — the ByteTrack innovation: high-confidence detections first, low-confidence recovery second</li>
+      </ul>
+      <div class="callout">
+        <div class="callout-label">Stage 1</div>
+        High-confidence detections (conf ≥ 0.5) matched to active tracks using IoU cost matrix + Hungarian (threshold 0.30).
+      </div>
+      <div class="callout">
+        <div class="callout-label">Stage 2</div>
+        Low-confidence detections (0.1–0.5) matched against unmatched tracks from Stage 1 (threshold 0.20). Recovers occluded/blurred players.
+      </div>
+    </section>
+
+    <section class="report-section">
+      <h2>3. Why This Combination</h2>
+      <div class="reason-grid">
+        <div class="reason-card">
+          <div class="reason-icon">⚡</div>
+          <div class="reason-title">Speed vs accuracy</div>
+          <div class="reason-body">YOLOv8m balances both on CPU. Swap to YOLOv8l for GPU deployments.</div>
+        </div>
+        <div class="reason-card">
+          <div class="reason-icon">◎</div>
+          <div class="reason-title">Crowd robustness</div>
+          <div class="reason-body">2-stage association recovers partially visible players that SORT discards entirely.</div>
+        </div>
+        <div class="reason-card">
+          <div class="reason-icon">△</div>
+          <div class="reason-title">ID stability</div>
+          <div class="reason-body">Kalman filter predicts player position through occlusion — reduces ID switches.</div>
+        </div>
+        <div class="reason-card">
+          <div class="reason-icon">⊡</div>
+          <div class="reason-title">No GPU for tracking</div>
+          <div class="reason-body">Unlike DeepSORT, ByteTrack uses pure IoU — no appearance embedding GPU needed.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="report-section">
+      <h2>4. How ID Consistency Is Maintained</h2>
+      <p>ID consistency runs through a <strong>predict → match → update</strong> loop every frame:</p>
+      <ol class="report-ol">
+        <li><strong>Predict:</strong> All active tracks Kalman-predict their next bounding box before seeing any detections. Every known track has an estimated position even if the detector misses it.</li>
+        <li><strong>Match:</strong> Hungarian algorithm finds globally optimal assignment between predicted boxes and detected boxes. A player detected slightly off their predicted position won't trigger a false ID switch.</li>
+        <li><strong>Buffer:</strong> Tracks that are unmatched remain alive for up to <code>max_age=30</code> frames (~1 second). If the player re-appears within that window, the same ID is reused.</li>
+        <li><strong>Confirmation:</strong> New detections require <code>min_hits=3</code> consecutive frames before becoming confirmed tracks. Suppresses flickering false-positive IDs.</li>
+        <li><strong>Monotonic counter:</strong> Track IDs assigned from a global integer counter. Once deleted, an ID is never reused — ensuring unique global count.</li>
+      </ol>
+    </section>
+
+    <section class="report-section">
+      <h2>5. Challenges Faced</h2>
+      <div class="challenge-list">
+        <div class="challenge-item">
+          <div class="ci-dot" style="background:#e24b4a"></div>
+          <div>
+            <div class="ci-title">Occlusion in tight groups</div>
+            <div class="ci-body">Players clustering together cause overlapping bounding boxes. IoU matching degrades when two boxes are nearly identical. Kalman velocity helps but can't fully solve this without ReID features.</div>
+          </div>
+        </div>
+        <div class="challenge-item">
+          <div class="ci-dot" style="background:#ef9f27"></div>
+          <div>
+            <div class="ci-title">Similar appearance</div>
+            <div class="ci-body">Players in identical jerseys are visually indistinguishable. Pure IoU tracking has no appearance fallback when same-kit players cross paths after occlusion.</div>
+          </div>
+        </div>
+        <div class="challenge-item">
+          <div class="ci-dot" style="background:#378add"></div>
+          <div>
+            <div class="ci-title">Fast camera motion</div>
+            <div class="ci-body">Pans and zooms invalidate all Kalman predictions simultaneously. The constant-velocity model assumes a stationary camera — fast pans briefly degrade all predictions.</div>
+          </div>
+        </div>
+        <div class="challenge-item">
+          <div class="ci-dot" style="background:#7f77dd"></div>
+          <div>
+            <div class="ci-title">Motion blur</div>
+            <div class="ci-body">Fast bowling shots or sprinting athletes produce blurred frames where YOLO confidence drops below the primary threshold. ByteTrack's Stage 2 recovery helps mitigate this.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="report-section">
+      <h2>6. Failure Cases Observed</h2>
+      <ul class="report-list">
+        <li><strong>Extended occlusion (&gt;1 second):</strong> Occlusion longer than <code>max_age</code> frames forces ID reassignment on re-emergence. This is the most common failure mode.</li>
+        <li><strong>Identical-looking subjects crossing:</strong> Two players in identical kits crossing paths may swap IDs because both Kalman prediction and IoU match are ambiguous.</li>
+        <li><strong>Dense crowd scenes:</strong> With 20+ subjects in frame, the IoU matrix becomes large and individual match quality degrades near identical bounding box sizes.</li>
+      </ul>
+    </section>
+
+    <section class="report-section">
+      <h2>7. Possible Improvements</h2>
+      <div class="improvement-grid">
+        <div class="improvement-card">
+          <div class="imp-tag">Short-term</div>
+          <div class="imp-title">Appearance ReID</div>
+          <div class="imp-body">Integrate OSNet or FastReID to create visual feature embeddings per crop. Match on combined IoU + cosine distance for long-term occlusion recovery.</div>
+        </div>
+        <div class="improvement-card">
+          <div class="imp-tag">Short-term</div>
+          <div class="imp-title">Camera compensation</div>
+          <div class="imp-body">Lucas-Kanade optical flow to estimate global camera motion per frame and subtract from Kalman predictions before association.</div>
+        </div>
+        <div class="improvement-card">
+          <div class="imp-tag">Medium-term</div>
+          <div class="imp-title">Bird's-eye projection</div>
+          <div class="imp-body">Homography transform (calibrated from pitch markings) projects all player positions onto a 2D top-down field for tactical analysis.</div>
+        </div>
+        <div class="improvement-card">
+          <div class="imp-tag">Medium-term</div>
+          <div class="imp-title">Team clustering</div>
+          <div class="imp-body">K-means on player jersey colors in HSV space to automatically assign team labels. Works well in clean, well-lit footage.</div>
+        </div>
+        <div class="improvement-card">
+          <div class="imp-tag">Long-term</div>
+          <div class="imp-title">Transformer tracking</div>
+          <div class="imp-body">Explore MOTR or TrackFormer — end-to-end architectures that jointly model detection and tracking, eliminating manual IoU matching.</div>
+        </div>
+        <div class="improvement-card">
+          <div class="imp-tag">Long-term</div>
+          <div class="imp-title">Formal evaluation</div>
+          <div class="imp-body">Benchmark on MOT17/MOT20 using HOTA, IDF1, and MOTA metrics to formalize tracking quality beyond visual inspection.</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<footer class="footer" style="margin-top:4rem">
+  <div class="container">
+    <div class="footer-row">
+      <div class="footer-brand">
+        <span class="footer-logo">TRACKFIELD</span>
+        <span class="footer-tagline">Sports Computer Vision Pipeline</span>
+      </div>
+      <div class="footer-links">
+        <a href="demo.html">Demo</a>
+        <a href="pipeline.html">Pipeline</a>
+        <a href="https://github.com" target="_blank">GitHub</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

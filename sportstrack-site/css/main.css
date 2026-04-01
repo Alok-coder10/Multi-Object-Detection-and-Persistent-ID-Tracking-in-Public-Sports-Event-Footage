@@ -1,0 +1,132 @@
+/* ===== RESET ===== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ===== THEME ===== */
+:root {
+  --bg: #06070d;
+  --bg-2: #0f1220;
+  --bg-3: #161a2e;
+
+  --text: #f5f7ff;
+  --text-2: #aab0d6;
+  --text-3: #6c7399;
+
+  --accent: #7c5cff;
+  --accent-2: #00d4ff;
+
+  --gradient: linear-gradient(135deg, #7c5cff, #00d4ff);
+
+  --radius: 12px;
+}
+
+/* ===== BASE ===== */
+body {
+  font-family: sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(124,92,255,0.15), transparent 40%),
+    var(--bg);
+}
+
+/* ===== NAV ===== */
+.nav {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  height: 60px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 30px;
+
+  background: rgba(10,10,20,0.7);
+  backdrop-filter: blur(12px);
+}
+
+.nav-logo {
+  font-weight: bold;
+  font-size: 18px;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ===== HERO ===== */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 100px 60px;
+  gap: 40px;
+}
+
+.hero-content {
+  max-width: 500px;
+}
+
+.hero-title {
+  font-size: 64px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.hero-title-accent {
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-desc {
+  margin-top: 20px;
+  color: var(--text-2);
+}
+
+/* ===== BUTTON ===== */
+.btn-primary {
+  margin-top: 25px;
+  padding: 14px 26px;
+
+  border-radius: var(--radius);
+  background: var(--gradient);
+  color: white;
+
+  border: none;
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.btn-primary:hover {
+  transform: translateY(-3px);
+}
+
+/* ===== CARDS ===== */
+.feature-card {
+  padding: 25px;
+  border-radius: var(--radius);
+
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(8px);
+
+  transition: 0.2s;
+}
+
+.feature-card:hover {
+  transform: translateY(-6px);
+}
+
+/* ===== GRID ===== */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 60px;
+}

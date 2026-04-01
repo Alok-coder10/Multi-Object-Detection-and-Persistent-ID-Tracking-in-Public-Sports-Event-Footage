@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline — TrackField</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html" class="nav-logo">TRACKFIELD</a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="demo.html" class="nav-link">Live Demo</a>
+    <a href="pipeline.html" class="nav-link active">Pipeline</a>
+    <a href="report.html" class="nav-link">Report</a>
+  </div>
+  <a href="demo.html" class="nav-cta">Try Demo →</a>
+</nav>
+
+<div class="container">
+  <div class="page-header">
+    <div class="section-label">Architecture</div>
+    <h1>The Pipeline</h1>
+    <p class="page-desc">A modular, end-to-end system for multi-object detection and persistent ID tracking in sports footage.</p>
+  </div>
+
+  <div class="tabs-bar">
+    <button class="tab-btn active" onclick="switchTab('overview', this)">Overview</button>
+    <button class="tab-btn" onclick="switchTab('detection', this)">Detection</button>
+    <button class="tab-btn" onclick="switchTab('tracking', this)">Tracking Loop</button>
+    <button class="tab-btn" onclick="switchTab('models', this)">Model Comparison</button>
+    <button class="tab-btn" onclick="switchTab('output', this)">Outputs</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="tab-panel active" id="panel-overview">
+    <div class="metric-row">
+      <div class="metric-card"><div class="mc-label">Detector</div><div class="mc-val">YOLOv8m</div><div class="mc-sub">50.2 mAP · COCO</div></div>
+      <div class="metric-card"><div class="mc-label">Tracker</div><div class="mc-val">ByteTrack</div><div class="mc-sub">2-stage Hungarian</div></div>
+      <div class="metric-card"><div class="mc-label">State dims</div><div class="mc-val">7</div><div class="mc-sub">Kalman vector</div></div>
+      <div class="metric-card"><div class="mc-label">Occlusion buffer</div><div class="mc-val">30 fr</div><div class="mc-sub">~1s @ 30fps</div></div>
+    </div>
+
+    <div class="flow-diagram">
+      <div class="flow-row">
+        <div class="flow-box input-box">
+          <div class="flow-tag">01</div>
+          <div class="flow-title">Video Input</div>
+          <div class="flow-desc">MP4 · WebM · MOV<br>Any resolution / FPS</div>
+        </div>
+        <div class="flow-conn">→</div>
+        <div class="flow-box">
+          <div class="flow-tag">02</div>
+          <div class="flow-title">Frame Decode</div>
+          <div class="flow-desc">OpenCV VideoCapture<br>Configurable frame skip</div>
+        </div>
+        <div class="flow-conn">→</div>
+        <div class="flow-box detect-box">
+          <div class="flow-tag">03</div>
+          <div class="flow-title">YOLOv8m Detect</div>
+          <div class="flow-desc">Conf 0.35 · NMS 0.45<br>Class 0 (person)</div>
+        </div>
+      </div>
+      <div class="flow-down">↓</div>
+      <div class="flow-row reverse">
+        <div class="flow-box output-box">
+          <div class="flow-tag">07</div>
+          <div class="flow-title">Outputs</div>
+          <div class="flow-desc">Video · Heatmap · JSON</div>
+        </div>
+        <div class="flow-conn">←</div>
+        <div class="flow-box">
+          <div class="flow-tag">06</div>
+          <div class="flow-title">Annotate Frame</div>
+          <div class="flow-desc">Boxes · IDs · trails<br>HUD overlay</div>
+        </div>
+        <div class="flow-conn">←</div>
+        <div class="flow-box track-box">
+          <div class="flow-tag">04–05</div>
+          <div class="flow-title">ByteTracker</div>
+          <div class="flow-desc">Kalman predict<br>2-stage Hungarian assign</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETECTION -->
+  <div class="tab-panel" id="panel-detection">
+    <h2 class="content-h2">YOLOv8 Detection</h2>
+    <p class="content-p">YOLOv8 is a single-stage anchor-free detector that processes the full image in one forward pass, outputting bounding boxes and class probabilities simultaneously.</p>
+
+    <div class="two-col">
+      <div>
+        <h3 class="content-h3">Why YOLOv8m?</h3>
+        <ul class="content-list">
+          <li>50.2 mAP on COCO val2017 — strong recall for partially visible players</li>
+          <li>~20 fps on CPU — viable for offline batch processing</li>
+          <li>Anchor-free head reduces hyperparameter sensitivity</li>
+          <li>Trained on COCO class 0 (person) — ideal for sports footage</li>
+          <li>Trivially swappable to YOLOv8l/x for GPU deployments</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="content-h3">Key parameters</h3>
+        <div class="param-table">
+          <div class="param-row"><span class="param-key">conf</span><span class="param-val">0.35</span><span class="param-note">Lower = more recall</span></div>
+          <div class="param-row"><span class="param-key">iou_nms</span><span class="param-val">0.45</span><span class="param-note">NMS overlap threshold</span></div>
+          <div class="param-row"><span class="param-key">classes</span><span class="param-val">[0]</span><span class="param-note">Person only (COCO)</span></div>
+          <div class="param-row"><span class="param-key">input_size</span><span class="param-val">640px</span><span class="param-note">Auto-letterboxed</span></div>
+          <div class="param-row"><span class="param-key">device</span><span class="param-val">cpu/cuda</span><span class="param-note">CLI configurable</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRACKING -->
+  <div class="tab-panel" id="panel-tracking">
+    <h2 class="content-h2">ByteTrack tracking loop</h2>
+    <p class="content-p">Each frame runs a predict → split → assign → update cycle. The two-stage association is the core innovation over classic SORT.</p>
+
+    <div class="step-cards">
+      <div class="step-card">
+        <div class="step-num-big">1</div>
+        <div>
+          <div class="step-card-title">Kalman predict</div>
+          <div class="step-card-desc">Every active track advances its Kalman state: <code>x̂ = F·x</code>. The 7-dimensional state vector (<code>cx, cy, area, aspect, vx, vy, v_area</code>) predicts where each player will be — before any detections are seen.</div>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num-big">2</div>
+        <div>
+          <div class="step-card-title">Split by confidence</div>
+          <div class="step-card-desc">Detections split into <strong>high-conf</strong> (≥0.5) and <strong>low-conf</strong> (0.1–0.5). This is ByteTrack's key insight — low-conf boxes are often real players that are partially occluded or motion-blurred.</div>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num-big">3</div>
+        <div>
+          <div class="step-card-title">Stage 1 — High-conf assignment</div>
+          <div class="step-card-desc">IoU cost matrix between predicted boxes and high-conf detections. Hungarian algorithm finds globally optimal matching (threshold 0.30). Matched tracks get a Kalman measurement update.</div>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num-big">4</div>
+        <div>
+          <div class="step-card-title">Stage 2 — Recovery pass</div>
+          <div class="step-card-desc">Low-conf detections are matched against tracks that were <em>unmatched</em> in Stage 1 (threshold 0.20). This recovers players who temporarily dropped below the confidence threshold.</div>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num-big">5</div>
+        <div>
+          <div class="step-card-title">New track creation</div>
+          <div class="step-card-desc">Unmatched high-conf detections spawn new <code>KalmanBoxTracker</code> instances with monotonically increasing IDs. A new track requires <code>min_hits=3</code> consecutive matches before being confirmed.</div>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num-big">6</div>
+        <div>
+          <div class="step-card-title">Track pruning</div>
+          <div class="step-card-desc">Tracks with <code>time_since_update > max_age</code> (30 frames) are deleted. Their IDs are never reused — ensuring a unique global count of all subjects seen in the video.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODELS -->
+  <div class="tab-panel" id="panel-models">
+    <h2 class="content-h2">Model comparison</h2>
+    <p class="content-p">All YOLOv8 variants share the same architecture; size trades accuracy against speed.</p>
+    <div class="model-table-wrap">
+      <table class="model-table">
+        <thead>
+          <tr><th>Model</th><th>Params</th><th>COCO mAP</th><th>CPU fps</th><th>GPU fps</th><th>Best for</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>yolov8n</code></td><td>3.2M</td><td>37.3</td><td>~45</td><td>~200</td><td>Edge / real-time CPU</td></tr>
+          <tr><td><code>yolov8s</code></td><td>11.2M</td><td>44.9</td><td>~30</td><td>~150</td><td>Balanced small</td></tr>
+          <tr class="highlight"><td><code>yolov8m</code> ✓</td><td>25.9M</td><td>50.2</td><td>~20</td><td>~100</td><td>Default (best balance)</td></tr>
+          <tr><td><code>yolov8l</code></td><td>43.7M</td><td>52.9</td><td>~12</td><td>~65</td><td>GPU, high accuracy</td></tr>
+          <tr><td><code>yolov8x</code></td><td>68.2M</td><td>53.9</td><td>~7</td><td>~40</td><td>Offline batch max acc.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 class="content-h2" style="margin-top:2rem">Tracker comparison</h2>
+    <div class="model-table-wrap">
+      <table class="model-table">
+        <thead>
+          <tr><th>Tracker</th><th>Association</th><th>Low-conf recovery</th><th>ReID</th><th>GPU needed</th><th>ID switches</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>SORT</td><td>1-stage IoU</td><td>No</td><td>No</td><td>No</td><td>High</td></tr>
+          <tr class="highlight"><td>ByteTrack ✓</td><td>2-stage IoU</td><td>Yes</td><td>No</td><td>No</td><td>Low</td></tr>
+          <tr><td>DeepSORT</td><td>IoU + appearance</td><td>No</td><td>Yes</td><td>Yes</td><td>Very low</td></tr>
+          <tr><td>MOTR</td><td>Transformer E2E</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Minimal</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- OUTPUTS -->
+  <div class="tab-panel" id="panel-output">
+    <h2 class="content-h2">Generated outputs</h2>
+    <div class="output-cards">
+      <div class="output-card">
+        <div class="output-icon" style="color:#c8f135">▶</div>
+        <div class="output-name">Annotated video</div>
+        <div class="output-file"><code>&lt;input&gt;_tracked.mp4</code></div>
+        <div class="output-desc">Bounding boxes with unique colored IDs, trajectory trails (60-frame history), progress bar HUD, active track count overlay.</div>
+      </div>
+      <div class="output-card">
+        <div class="output-icon" style="color:#ff8040">◉</div>
+        <div class="output-name">Movement heatmap</div>
+        <div class="output-file"><code>&lt;input&gt;_heatmap.jpg</code></div>
+        <div class="output-desc">Gaussian-blurred activity accumulator overlaid with JET colormap. Warmer = more player activity. Reveals high-traffic zones across the full video.</div>
+      </div>
+      <div class="output-card">
+        <div class="output-icon" style="color:#4ab8f2">{ }</div>
+        <div class="output-name">Stats JSON</div>
+        <div class="output-file"><code>&lt;input&gt;_stats.json</code></div>
+        <div class="output-desc">Unique track count, max/avg simultaneous tracks, per-frame count series, processing FPS, model info, and full tracker statistics.</div>
+      </div>
+    </div>
+
+    <h3 class="content-h3" style="margin-top:2rem">Sample stats.json</h3>
+    <div class="code-block">
+<span class="c-comment">{</span>
+  <span class="c-key">"unique_track_ids"</span>: <span class="c-str">14</span>,
+  <span class="c-key">"max_simultaneous_tracks"</span>: <span class="c-str">11</span>,
+  <span class="c-key">"avg_simultaneous_tracks"</span>: <span class="c-str">8.4</span>,
+  <span class="c-key">"processing_fps"</span>: <span class="c-str">18.6</span>,
+  <span class="c-key">"model_info"</span>: {
+    <span class="c-key">"model"</span>: <span class="c-str">"yolov8m.pt"</span>,
+    <span class="c-key">"confidence"</span>: <span class="c-str">0.35</span>,
+    <span class="c-key">"device"</span>: <span class="c-str">"cpu"</span>
+  }
+<span class="c-comment">}</span>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer class="footer" style="margin-top:4rem">
+  <div class="container">
+    <div class="footer-row">
+      <div class="footer-brand">
+        <span class="footer-logo">TRACKFIELD</span>
+        <span class="footer-tagline">Sports Computer Vision Pipeline</span>
+      </div>
+      <div class="footer-links">
+        <a href="demo.html">Demo</a>
+        <a href="report.html">Report</a>
+        <a href="https://github.com" target="_blank">GitHub</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

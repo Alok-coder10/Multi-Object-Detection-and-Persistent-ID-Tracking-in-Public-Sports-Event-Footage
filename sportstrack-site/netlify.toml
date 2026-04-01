@@ -1,0 +1,12 @@
+# Netlify — static site (separate HTML pages; no SPA rewrite)
+# https://docs.netlify.com/configure-builds/file-based-configuration/
+
+[build]
+  publish = "."
+
+# Optional hardening (safe defaults for static assets)
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

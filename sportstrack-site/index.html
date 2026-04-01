@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrackField — Sports Multi-Object Tracking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html" class="nav-logo">TRACKFIELD</a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link active">Home</a>
+    <a href="demo.html" class="nav-link">Live Demo</a>
+    <a href="pipeline.html" class="nav-link">Pipeline</a>
+    <a href="report.html" class="nav-link">Report</a>
+  </div>
+  <a href="demo.html" class="nav-cta">Try Demo →</a>
+</nav>
+
+<header class="hero">
+  <div class="hero-grid-bg"></div>
+  <div class="hero-content">
+    <div class="hero-tag">Computer Vision · Multi-Object Tracking</div>
+    <h1 class="hero-title">
+      Detect.<br>
+      <span class="hero-title-accent">Track.</span><br>
+      Identify.
+    </h1>
+    <p class="hero-desc">
+      Real-time multi-object detection and persistent ID tracking for sports footage.
+      YOLOv8 · ByteTrack · Kalman filtering — runs entirely in your browser.
+    </p>
+    <div class="hero-actions">
+      <a href="demo.html" class="btn-primary">Launch Demo</a>
+      <a href="pipeline.html" class="btn-ghost">View Pipeline</a>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="tracker-demo">
+      <div class="td-screen">
+        <canvas id="demoCanvas" width="420" height="280"></canvas>
+        <div class="td-overlay">
+          <span class="td-badge">LIVE PREVIEW</span>
+        </div>
+      </div>
+      <div class="td-stats">
+        <div class="td-stat"><span class="td-stat-val" id="s-tracks">0</span><span class="td-stat-key">Active Tracks</span></div>
+        <div class="td-stat"><span class="td-stat-val" id="s-fps">—</span><span class="td-stat-key">FPS</span></div>
+        <div class="td-stat"><span class="td-stat-val" id="s-ids">0</span><span class="td-stat-key">Unique IDs</span></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="features">
+  <div class="container">
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">◎</div>
+        <h3>YOLOv8 Detection</h3>
+        <p>State-of-the-art anchor-free object detection. Detects all persons in each frame with configurable confidence thresholds.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⟲</div>
+        <h3>ByteTrack Algorithm</h3>
+        <p>Two-stage Hungarian assignment recovers low-confidence detections. Handles occlusion, blur, and crowded scenes.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">△</div>
+        <h3>Kalman Filter</h3>
+        <p>Constant-velocity motion model predicts positions between detections. Persistent IDs survive up to 30 frames of occlusion.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">◈</div>
+        <h3>Movement Heatmap</h3>
+        <p>Gaussian-blurred activity accumulator reveals player positioning patterns and high-traffic zones across the full video.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⊡</div>
+        <h3>Trajectory Trails</h3>
+        <p>Golden-ratio color-coded trails for each unique ID. Up to 60-frame history drawn with alpha-weighted thickness.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⊞</div>
+        <h3>In-Browser Inference</h3>
+        <p>ONNX Runtime Web runs detection directly in your browser. No server, no upload, no data leaves your device.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pipeline-preview">
+  <div class="container">
+    <div class="section-label">Architecture</div>
+    <h2 class="section-title">How it works</h2>
+    <div class="arch-flow">
+      <div class="arch-step">
+        <div class="arch-num">01</div>
+        <div class="arch-body">
+          <div class="arch-step-title">Video Input</div>
+          <div class="arch-step-desc">MP4 · any resolution · any framerate</div>
+        </div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-step">
+        <div class="arch-num">02</div>
+        <div class="arch-body">
+          <div class="arch-step-title">Frame Extraction</div>
+          <div class="arch-step-desc">Configurable skip · batch decode</div>
+        </div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-step">
+        <div class="arch-num">03</div>
+        <div class="arch-body">
+          <div class="arch-step-title">YOLOv8 Detect</div>
+          <div class="arch-step-desc">Conf 0.35 · NMS 0.45 · Class 0</div>
+        </div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-step">
+        <div class="arch-num">04</div>
+        <div class="arch-body">
+          <div class="arch-step-title">ByteTrack</div>
+          <div class="arch-step-desc">Kalman predict → Hungarian assign</div>
+        </div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-step">
+        <div class="arch-num">05</div>
+        <div class="arch-body">
+          <div class="arch-step-title">Annotate</div>
+          <div class="arch-step-desc">Boxes · IDs · trails · heatmap</div>
+        </div>
+      </div>
+    </div>
+    <div class="arch-cta">
+      <a href="pipeline.html" class="btn-ghost">Explore full pipeline →</a>
+    </div>
+  </div>
+</section>
+
+<section class="stats-strip">
+  <div class="container">
+    <div class="stats-row">
+      <div class="stat-item">
+        <span class="stat-num">50.2</span>
+        <span class="stat-label">mAP on COCO (YOLOv8m)</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-num">7-dim</span>
+        <span class="stat-label">Kalman state vector</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-num">30fr</span>
+        <span class="stat-label">Max occlusion buffer</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-num">2-stage</span>
+        <span class="stat-label">ByteTrack association</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-row">
+      <div class="footer-brand">
+        <span class="footer-logo">TRACKFIELD</span>
+        <span class="footer-tagline">Sports Computer Vision Pipeline</span>
+      </div>
+      <div class="footer-links">
+        <a href="demo.html">Demo</a>
+        <a href="pipeline.html">Pipeline</a>
+        <a href="report.html">Report</a>
+        <a href="https://github.com" target="_blank">GitHub</a>
+      </div>
+    </div>
+    <div class="footer-note">Built with YOLOv8 · ByteTrack · ONNX Runtime Web · Pure HTML/CSS/JS</div>
+  </div>
+</footer>
+
+<script src="js/hero-animation.js"></script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+/* ===== CONTENT ===== */
+.content-h2 {
+  font-size: 30px;
+  margin: 40px 0 15px;
+}
+
+.content-p {
+  max-width: 700px;
+  color: #aab0d6;
+  margin-bottom: 15px;
+}
+
+/* ===== TWO COLUMN ===== */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+/* ===== FLOW ===== */
+.flow-diagram {
+  margin: 40px 0;
+  padding: 20px;
+
+  border-radius: 12px;
+  background: #0f1220;
+}
+
+.flow-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ===== BOX ===== */
+.flow-box {
+  flex: 1;
+  padding: 15px;
+
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
+}
+
+/* ===== CARDS ===== */
+.step-card {
+  display: flex;
+  gap: 15px;
+
+  padding: 20px;
+  border-radius: 10px;
+
+  background: rgba(255,255,255,0.04);
+  margin-bottom: 15px;
+
+  transition: 0.2s;
+}
+
+.step-card:hover {
+  transform: translateY(-5px);
+}
+
+/* ===== TABLE ===== */
+.param-row {
+  display: grid;
+  grid-template-columns: 120px 100px 1fr;
+
+  padding: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+/* ===== OUTPUT GRID ===== */
+.output-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.output-card {
+  padding: 20px;
+  border-radius: 10px;
+
+  background: rgba(255,255,255,0.04);
+}

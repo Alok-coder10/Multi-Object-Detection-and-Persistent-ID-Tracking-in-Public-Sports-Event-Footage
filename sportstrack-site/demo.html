@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Demo — TrackField</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/demo.css">
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html" class="nav-logo">TRACKFIELD</a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="demo.html" class="nav-link active">Live Demo</a>
+    <a href="pipeline.html" class="nav-link">Pipeline</a>
+    <a href="report.html" class="nav-link">Report</a>
+  </div>
+  <a href="https://github.com" target="_blank" class="nav-cta">GitHub →</a>
+</nav>
+
+<div class="demo-layout">
+
+  <!-- SIDEBAR: Controls -->
+  <aside class="demo-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Input Video</div>
+      <div class="upload-zone" id="uploadZone">
+        <div class="upload-icon">⬆</div>
+        <div class="upload-text">Drop video here</div>
+        <div class="upload-sub">MP4 · WebM · MOV</div>
+        <input type="file" id="videoInput" accept="video/*" style="display:none">
+        <button class="upload-btn" onclick="document.getElementById('videoInput').click()">Browse file</button>
+      </div>
+      <div class="demo-source-note">
+        Or try sample: <button class="link-btn" id="loadSample">Load demo clip</button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Detection</div>
+      <div class="ctrl-row">
+        <label class="ctrl-label">Confidence threshold</label>
+        <div class="ctrl-input-row">
+          <input type="range" id="confThresh" min="10" max="90" value="35" step="1">
+          <span class="ctrl-val" id="confVal">0.35</span>
+        </div>
+      </div>
+      <div class="ctrl-row">
+        <label class="ctrl-label">NMS IoU threshold</label>
+        <div class="ctrl-input-row">
+          <input type="range" id="iouThresh" min="20" max="80" value="45" step="1">
+          <span class="ctrl-val" id="iouVal">0.45</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Tracking</div>
+      <div class="ctrl-row">
+        <label class="ctrl-label">Max track age (frames)</label>
+        <div class="ctrl-input-row">
+          <input type="range" id="maxAge" min="5" max="60" value="30" step="1">
+          <span class="ctrl-val" id="ageVal">30</span>
+        </div>
+      </div>
+      <div class="ctrl-row">
+        <label class="ctrl-label">Min hits to confirm</label>
+        <div class="ctrl-input-row">
+          <input type="range" id="minHits" min="1" max="10" value="3" step="1">
+          <span class="ctrl-val" id="hitsVal">3</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Visualization</div>
+      <div class="toggle-row">
+        <label class="toggle-label">Show trails</label>
+        <label class="toggle">
+          <input type="checkbox" id="showTrails" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <label class="toggle-label">Show confidence</label>
+        <label class="toggle">
+          <input type="checkbox" id="showConf" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <label class="toggle-label">Show heatmap</label>
+        <label class="toggle">
+          <input type="checkbox" id="showHeatmap">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <button class="run-btn" id="runBtn" disabled>
+      <span id="runBtnText">▶ Run Tracking</span>
+    </button>
+  </aside>
+
+  <!-- MAIN: Output -->
+  <main class="demo-main">
+    <div class="demo-topbar">
+      <div class="demo-status" id="statusBadge">
+        <span class="status-dot"></span>
+        <span id="statusText">Waiting for video</span>
+      </div>
+      <div class="demo-controls">
+        <button class="icon-btn" id="playPauseBtn" disabled title="Play/Pause">⏸</button>
+        <button class="icon-btn" id="resetBtn" title="Reset">↺</button>
+        <button class="icon-btn" id="downloadBtn" disabled title="Download frame">↓</button>
+      </div>
+    </div>
+
+    <div class="canvas-container" id="canvasContainer">
+      <video id="srcVideo" style="display:none" crossorigin="anonymous"></video>
+      <canvas id="outputCanvas"></canvas>
+      <div class="canvas-placeholder" id="canvasPlaceholder">
+        <div class="placeholder-icon">◎</div>
+        <div class="placeholder-text">Upload a video to begin tracking</div>
+        <div class="placeholder-sub">All processing happens in your browser — no upload to any server</div>
+      </div>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat-chip">
+        <span class="sc-label">Frame</span>
+        <span class="sc-val" id="statFrame">—</span>
+      </div>
+      <div class="stat-chip">
+        <span class="sc-label">Active tracks</span>
+        <span class="sc-val accent" id="statTracks">—</span>
+      </div>
+      <div class="stat-chip">
+        <span class="sc-label">Unique IDs</span>
+        <span class="sc-val" id="statIds">—</span>
+      </div>
+      <div class="stat-chip">
+        <span class="sc-label">Detections</span>
+        <span class="sc-val" id="statDets">—</span>
+      </div>
+      <div class="stat-chip">
+        <span class="sc-label">Processing</span>
+        <span class="sc-val" id="statFps">—</span>
+      </div>
+    </div>
+
+    <div class="track-log-wrap">
+      <div class="track-log-header">
+        <span>Active Track Log</span>
+        <span id="trackLogCount" style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);">0 tracks</span>
+      </div>
+      <div class="track-log" id="trackLog">
+        <div class="track-log-empty">No active tracks yet</div>
+      </div>
+    </div>
+
+    <div class="chart-row">
+      <div class="chart-card">
+        <div class="chart-title">Tracks over time</div>
+        <canvas id="countChart" height="100"></canvas>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="js/tracker-sim.js"></script>
+<script src="js/demo.js"></script>
+</body>
+</html>
